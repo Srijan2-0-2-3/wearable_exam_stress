@@ -21,13 +21,15 @@ warnings.filterwarnings("ignore")
 
 class FeatureDataset(Dataset):
     def __init__(self, student):
-        df = pd.read_csv(f'{student}_Final_dataset.csv', index_col=0)
+        df = pd.read_csv(f'{student}_midsem_dataset.csv', index_col=0)
+        score = df['score']
+        df = df.drop('score', axis=1)
         self.data = torch.tensor((np.array(df)), dtype=torch.float32)
         print(self.data.shape)
         # print(type(self.data))
-        score = pd.read_csv(f'{student}_Final.csv', header=None).iloc[0, 0]
-        target_data = np.full((len(df), 1), score)
-        self.targets = torch.tensor(target_data, dtype=torch.long).squeeze()
+        # score = pd.read_csv(f'{student}_Final.csv', header=None).iloc[0, 0]
+        # target_data = np.full((len(df), 1), score)
+        self.targets = torch.tensor(np.array(score), dtype=torch.long).squeeze()
         print(self.targets.shape)
 
     def __len__(self):
@@ -79,7 +81,7 @@ test_student = ['S10']
 
 input_dim = 7
 hidden_dim = 14
-output_dim = 200
+output_dim = 100
 
 model = Classifier(input_dim, hidden_dim, output_dim)
 scenario = dataset_benchmark([FeatureDataset(subject) for subject in train_students],
@@ -106,7 +108,7 @@ results = []
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 strats = ['naive', 'offline', 'replay', 'cumulative', 'lwf', 'ewc', 'episodic']
-strat = 'replay'
+strat = 'offline'
 # for strat in strats:
 if (strat == "naive"):
     print("Naive continual learning")
@@ -115,7 +117,7 @@ if (strat == "naive"):
 elif (strat == "offline"):
     print("Offline learning")
     strategy = JointTraining(model, Adam(model.parameters(), lr=0.005, betas=(0.99, 0.99)), CrossEntropyLoss(),
-                             train_epochs=100, eval_every=1, plugins=[es], evaluator=eval_plugin, device=device)
+                             train_epochs=10, eval_every=1, plugins=[es], evaluator=eval_plugin, device=device)
 elif (strat == "replay"):
     print("Replay training")
     strategy = Replay(model, Adam(model.parameters(), lr=0.005, betas=(0.99, 0.99)), CrossEntropyLoss(),
@@ -138,7 +140,6 @@ elif (strat == "episodic"):
     print("Episodic continual learning")
     strategy = GEM(model, Adam(model.parameters(), lr=0.005, betas=(0.99, 0.99)), CrossEntropyLoss(), train_epochs=100,
                    eval_every=1, plugins=[es], evaluator=eval_plugin, device=device, patterns_per_exp=70)
-
 
 i = 0
 
