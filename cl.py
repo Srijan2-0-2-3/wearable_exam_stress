@@ -20,16 +20,17 @@ warnings.filterwarnings("ignore")
 
 
 class FeatureDataset(Dataset):
-    def __init__(self, student):
+    def __init__(self, student, device='cpu'):
+        super(FeatureDataset, self).__init__()
         df = pd.read_csv(f'{student}_midsem_dataset.csv', index_col=0)
         score = df['score']
         df = df.drop('score', axis=1)
-        self.data = torch.tensor((np.array(df)), dtype=torch.float32)
+        self.data = torch.tensor((np.array(df)), dtype=torch.float32).to(device)
         print(self.data.shape)
         # print(type(self.data))
         # score = pd.read_csv(f'{student}_Final.csv', header=None).iloc[0, 0]
         # target_data = np.full((len(df), 1), score)
-        self.targets = torch.tensor(np.array(score), dtype=torch.long).squeeze()
+        self.targets = torch.tensor(np.array(score), dtype=torch.long).squeeze().to(device)
         print(self.targets.shape)
 
     def __len__(self):
@@ -82,11 +83,11 @@ test_student = ['S10']
 input_dim = 7
 hidden_dim = 14
 output_dim = 100
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = Classifier(input_dim, hidden_dim, output_dim)
-scenario = dataset_benchmark([FeatureDataset(subject) for subject in train_students],
-                             [FeatureDataset(subject) for subject in test_student])
-# scenario =dataset_benchmark([FeatureDataset('S1')],[FeatureDataset('S1')])
+scenario = dataset_benchmark([FeatureDataset(subject,device) for subject in train_students],
+                             [FeatureDataset(subject,device) for subject in test_student])
+# scenario = dataset_benchmark([FeatureDataset('S1', device)], [FeatureDataset('S1', device)])
 tb_logger = TensorboardLogger()
 text_logger = TextLogger(open('wearable_exam_stress_log.txt', 'a'))
 int_logger = InteractiveLogger()
@@ -105,7 +106,6 @@ eval_plugin = EvaluationPlugin(
 es = EarlyStoppingPlugin(patience=25, val_stream_name="train_stream")
 
 results = []
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 strats = ['naive', 'offline', 'replay', 'cumulative', 'lwf', 'ewc', 'episodic']
 strat = 'offline'
