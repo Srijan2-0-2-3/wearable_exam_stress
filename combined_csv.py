@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 import torch.nn as nn
 
-path = "a-wearable-exam-stress-dataset-for-predicting-cognitive-performance-in-real-world-settings-1.0.0\\Data\\Data\\"
+path = "a-wearable-exam-stress-dataset-for-predicting-cognitive-performance-in-real-world-settings-1.0.0/Data/"
 
 students = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10']
 
@@ -20,7 +20,7 @@ for student in students:
     for exam in exams:
         print(exam)
         # df = pd.DataFrame(columns=[])
-        df = pd.read_csv(f'{path}{student}\\{exam}\\ACC.csv', header=None)
+        df = pd.read_csv(f'{path}{student}/{exam}/ACC.csv', header=None)
         initial_timestamp = df.iloc[0, 0]
         sample_rate = df.iloc[1, 0]
         timestamps = [initial_timestamp + i / sample_rate for i in range(len(df) - 3)]
@@ -29,7 +29,7 @@ for student in students:
         df['Timestamp'] = timestamps
         df.columns = ['x_acc', 'y_acc', 'z_acc', 'Timestamp']
         for feature in features:
-            df1 = pd.read_csv(f'{path}{student}\\{exam}\\{feature}.csv', header=None)
+            df1 = pd.read_csv(f'{path}{student}/{exam}/{feature}.csv', header=None)
             initial_timestamp = df1.iloc[0, 0]
             sample_rate = df1.iloc[1, 0]
             timestamps = [initial_timestamp + i / sample_rate for i in range(len(df1) - 3)]

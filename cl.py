@@ -13,7 +13,7 @@ from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 import pickle
 import torch.nn as nn
 import torch
-
+# from avalanche.benchmarks import Splitter
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -63,31 +63,21 @@ class Classifier(nn.Module):
 students = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10']
 train_students = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9']
 test_student = ['S10']
-# train_dataset_final = []
-# test_dataset_final = []
-# train_dataset_midterm1 = []
-# test_dataset_midterm1 = []
-# train_dataset_midterm2 = []
-# test_dataset_midterm2 = []
-# exams = ['Final', 'Midterm 1', 'Midterm 2']
-# print(len(df))
-# df.to_csv(f'{student}_{exam}_dataset.csv')
-# df_tf = tf.convert_to_tensor(df)
-# print(df_tf.shape)
-# score = pd.read_csv(f'{student}_{exam}.csv',header=None).iloc[0,0]
-# print(score)
-# fd = FeatureDataset(df_tf, score)
-# print(fd)
-
-
+device = torch.device('cpu')
 input_dim = 7
 hidden_dim = 14
 output_dim = 100
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+train_task_labels = list(range(len(train_students)))
+test_task_labels = list(range(len(train_students), len(train_students) + len(test_student)))
+
+# splitter = Splitter(train_task_labels, test_task_labels)
+
+
 model = Classifier(input_dim, hidden_dim, output_dim)
 scenario = dataset_benchmark([FeatureDataset(subject,device) for subject in train_students],
                              [FeatureDataset(subject,device) for subject in test_student])
-# scenario = dataset_benchmark([FeatureDataset('S1', device)], [FeatureDataset('S1', device)])
+
 tb_logger = TensorboardLogger()
 text_logger = TextLogger(open('wearable_exam_stress_log.txt', 'a'))
 int_logger = InteractiveLogger()
@@ -108,8 +98,8 @@ es = EarlyStoppingPlugin(patience=25, val_stream_name="train_stream")
 results = []
 
 strats = ['naive', 'offline', 'replay', 'cumulative', 'lwf', 'ewc', 'episodic']
-strat = 'offline'
-# for strat in strats:
+strat = 'lwf'
+
 if (strat == "naive"):
     print("Naive continual learning")
     strategy = Naive(model, Adam(model.parameters(), lr=0.005, betas=(0.99, 0.99)), CrossEntropyLoss(),
@@ -122,7 +112,7 @@ elif (strat == "replay"):
     print("Replay training")
     strategy = Replay(model, Adam(model.parameters(), lr=0.005, betas=(0.99, 0.99)), CrossEntropyLoss(),
                       train_epochs=100, eval_every=1, plugins=[es], evaluator=eval_plugin, device=device, mem_size=70,
-                      train_mb_size=70)  # 25% of WESAD
+                      train_mb_size=70)
 elif (strat == "cumulative"):
     print("Cumulative continual learning")
     strategy = Cumulative(model, Adam(model.parameters(), lr=0.005, betas=(0.99, 0.99)), CrossEntropyLoss(),
